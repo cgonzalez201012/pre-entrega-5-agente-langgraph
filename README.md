@@ -7,13 +7,13 @@ El caso es de Gobierno de Datos, que es mi área de trabajo: el agente responde 
 ## Qué hace
 
 ```
-Vos:     ¿Cuántos incidentes críticos abiertos tiene el maestro de artículos y quién es el responsable del más antiguo?
-Agente:  → decide usar buscar_incidentes_calidad(maestro="articulos", estado="abierto", severidad="critica")
-         → recibe 2 incidentes (INC-1001, INC-1002) y ve cuál tiene más días desde el alta
-         → decide usar detalle_incidente(incidente_id="INC-1001")
-         → recibe el responsable y ya tiene todo → responde
+Pregunta 1: ¿Cuántos incidentes críticos abiertos tiene el maestro de artículos y quién es el responsable del más antiguo?
+Agente:     → decide usar buscar_incidentes_calidad(maestro="articulos", estado="abierto", severidad="critica")
+            → recibe 2 incidentes (INC-1001, INC-1002) y ve cuál tiene más días desde el alta
+            → decide usar detalle_incidente(incidente_id="INC-1001")
+            → recibe el responsable y ya tiene todo → responde
 
-Vos:     ¿Y qué regla incumple ese incidente?        (mismo thread_id: el agente recuerda cuál era "ese incidente")
+Pregunta 2: ¿Y qué regla incumple ese incidente?     (mismo thread_id: el agente recuerda cuál era "ese incidente")
 ```
 
 La respuesta necesita dos consultas encadenadas: la segunda depende de un dato que salió de la primera. Ese es el razonamiento multi-paso que pide la consigna.
@@ -52,11 +52,11 @@ Necesito Python 3.12 o superior y una clave de Anthropic.
 git clone https://github.com/cgonzalez201012/pre-entrega-5-agente-langgraph.git
 cd pre-entrega-5-agente-langgraph
 
-python3.12 -m venv .venv
+python3.13 -m venv .venv             # o python3.12: probé el proyecto con las dos versiones
 source .venv/bin/activate            # en Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 
-cp .env.example .env                 # y pegá tu ANTHROPIC_API_KEY en el .env
+cp .env.example .env                 # y completo mi ANTHROPIC_API_KEY en el .env
 ```
 
 Las variables que lee el programa están en `.env.example`. La clave nunca se escribe en el código y `.env` está en el `.gitignore`.
@@ -113,6 +113,13 @@ Respuesta: "..."
 
 El `.json` tiene lo mismo, paso a paso, más el modelo usado, el `recursion_limit` y la cantidad de herramientas llamadas en cada turno. La redacción de las respuestas puede variar entre corridas; los datos salen siempre de las herramientas.
 
+**Lo que pasó en mi corrida** (`claude-haiku-4-5`, traza incluida en el repo):
+
+1. Llamó a `buscar_incidentes_calidad` y después a `detalle_incidente(INC-1001)`: 2 llamadas encadenadas.
+2. Con el mismo `thread_id` entendió que "ese incidente" era INC-1001, consultó `consultar_regla_calidad(R-ART-01)` y respondió que no cumple el umbral (96,8 % medido contra 99,5 % exigido).
+3. Ante `INC-1010` leyó el error, listó los IDs que sí existen (INC-1001 a INC-1005) y pidió que se elija uno.
+4. Tras cerrar y reabrir la base respondió con 0 llamadas a herramientas: recordó INC-1001 y su responsable.
+
 ## Cómo cumple la consigna
 
 | Criterio de aceptación / checklist | Dónde está |
@@ -120,13 +127,22 @@ El `.json` tiene lo mismo, paso a paso, más el modelo usado, el `recursion_limi
 | **Autonomía**: el agente decide cuándo llamar a una herramienta, sin rutas `if/else` | `agente.py`: `llm.bind_tools()` y `tools_condition`. En el código no hay ninguna condición sobre el contenido de la pregunta: el enrutado lo hace `tools_condition` según lo que devuelva el modelo. |
 | **Ciclo de retorno**: ante un error, segundo intento o pedir aclaración | Las herramientas devuelven `{"error", "ayuda"}` como texto y la arista `tools → agente` le devuelve el resultado al modelo. El prompt le indica qué hacer. Escenario 3 de la traza. |
 | **Resiliencia de estado**: con `thread_id` recuerda la sesión | `AsyncSqliteSaver` + `thread_id` en `preguntar()`. Escenarios 2 y 4 de la traza; `tests/test_memoria.py`. |
-| **Código limpio**: Python 3.12, type hints, `asyncio` | Todo el código es `async` y tiene anotaciones de tipo (`mypy .` sin errores; un test revisa que no falte ninguna). |
+| **Código limpio**: Python 3.12, type hints, `asyncio` | El agente, las herramientas y la persistencia son asíncronos (`async`/`await`, `ainvoke`). Todas las funciones tienen anotaciones de tipo (`mypy .` sin errores; un test revisa que no falte ninguna). |
 | `StateGraph` sobre `MessagesState`, nodo de modelo + nodo de herramientas + `tools_condition` | `agente.py`: `EstadoAgente(MessagesState)`, nodos `agente` y `tools`. |
 | Al menos 1 herramienta con `@tool` y docstring descriptivo | `herramientas.py` (3 herramientas). |
 | Persistencia con SqliteSaver + `thread_id` | `agente.py` (ver la decisión sobre `AsyncSqliteSaver` abajo). |
 | Prueba multi-paso (≥2 llamadas) y `recursion_limit` definido | Escenario 1 de la traza; `recursion_limit=10` en `config.py`, pasado en cada invocación. |
 | Ejemplo de traza (.json o log) | `trazas/traza-demo.json` y `trazas/traza-demo.log`. |
 | Repo público, sin API keys, README con el entorno | Este README, `.env.example`, `.gitignore`; un test busca claves en todos los archivos. |
+
+## Cómo cumple la rúbrica
+
+| Criterio (peso) | Qué hice y dónde está |
+|---|---|
+| **Arquitectura del grafo y gestión de estado** (30 %) | `EstadoAgente(MessagesState)` con el reducer `add_messages`; nodos `agente` y `tools`; arista condicional `tools_condition` y arista de retorno `tools → agente`; recorte del historial para que el estado no crezca sin control. `agente.py` y `tests/test_grafo.py`. |
+| **Integración de herramientas y razonamiento multi-paso** (35 %) | Tres herramientas `@tool` asíncronas con esquemas Pydantic y descripciones largas, enlazadas con `bind_tools`; los errores vuelven al modelo como texto. Escenarios 1 y 3 de la traza. `herramientas.py` y `tests/test_herramientas.py`. |
+| **Persistencia con SqliteSaver** (20 %) | `AsyncSqliteSaver` con `thread_id`; la memoria queda en `memoria/agente.sqlite`. Escenarios 2 y 4 de la traza, `--ver-hilo` y `tests/test_memoria.py`. |
+| **Calidad del repositorio y entorno profesional** (15 %) | Un módulo por responsabilidad, type hints verificados con `mypy`, `requirements.txt` con versiones fijas, `pyproject.toml`, `.env.example` y `.gitignore`, un test que busca claves en todo el repo y 79 tests. |
 
 ## Decisiones de diseño
 
@@ -135,12 +151,12 @@ El `.json` tiene lo mismo, paso a paso, más el modelo usado, el `recursion_limi
 - **Los errores de las herramientas viajan como texto, no como excepciones.** Un ID inexistente devuelve `{"error": ..., "ayuda": ...}`. Así el modelo lo lee y decide si corrige o pregunta. Para las excepciones inesperadas, el `ToolNode` está con `handle_tool_errors=True` y el texto del error también vuelve al modelo.
 - **Herramientas de solo lectura y sin SQL libre.** El modelo nunca arma una consulta: elige una herramienta y completa argumentos validados con Pydantic (principio de mínimo privilegio).
 - **`recursion_limit=10`.** Cada vuelta modelo → herramienta cuenta 2 pasos y la respuesta final 1, así que entran hasta 4 rondas de herramientas. Si el modelo se pasa, el turno se corta con un aviso en vez de gastar API sin fin. Al cortar, el hilo se deja en un estado válido (cada pedido de herramienta pendiente se cierra con un mensaje de error); si no, la pregunta siguiente del mismo hilo fallaría en Anthropic por una llamada sin respuesta.
-- **Estado que no crece sin control.** Al modelo se le manda solo el final del historial (por defecto, los últimos 30 mensajes, siempre desde un mensaje del usuario para no dejar respuestas de herramientas huérfanas). El historial completo sigue guardado en SQLite.
+- **Estado que no crece sin control.** Al modelo le mando solo el final del historial (por defecto, los últimos 30 mensajes, siempre desde un mensaje del usuario para no dejar respuestas de herramientas huérfanas). El historial completo sigue guardado en SQLite.
 - **El estado no tiene campos extra.** Todo lo que el agente necesita recordar (preguntas, llamadas, resultados) ya está en los mensajes, así que no agregué campos solo para cumplir.
 
 ## Límites
 
-- Los datos son ficticios y de juguete: 12 incidentes y 12 reglas.
-- Los tests prueban el grafo con un modelo falso que sigue un guion: verifican el enrutamiento, la ejecución de herramientas, la memoria y los límites, **no** que Claude decida bien. Eso se ve en la corrida real de `--demo`, cuya traza está en `trazas/`.
-- El recorte del historial cuenta mensajes, no tokens.
-- SQLite local es para desarrollo, como indica la consigna. Para producción se cambiaría por un checkpointer de Postgres sin tocar el grafo.
+- Los datos son ficticios y de juguete: armé 12 incidentes y 12 reglas.
+- Mis tests prueban el grafo con un modelo falso que sigue un guion: verifican el enrutamiento, la ejecución de herramientas, la memoria y los límites, **no** que Claude decida bien. Eso se ve en la corrida real de `--demo`, cuya traza está en `trazas/`.
+- Recorto el historial contando mensajes, no tokens.
+- SQLite local es para desarrollo, como indica la consigna. Para producción lo cambiaría por un checkpointer de Postgres sin tocar el grafo.

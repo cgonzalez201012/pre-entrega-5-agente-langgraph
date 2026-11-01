@@ -41,7 +41,7 @@ class Configuracion:
         clave = os.environ.get("ANTHROPIC_API_KEY", "").strip()
         if requerir_clave and not clave:
             raise ErrorConfiguracion(
-                "Falta ANTHROPIC_API_KEY. Copia .env.example a .env y pega tu clave "
+                "Falta ANTHROPIC_API_KEY. Copiá .env.example a .env y pegá tu clave "
                 "de Anthropic (o exportala como variable de entorno)."
             )
 
