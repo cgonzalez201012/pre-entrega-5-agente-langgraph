@@ -1,0 +1,252 @@
+{
+  "proyecto": "pre-entrega-5-agente-langgraph",
+  "modelo": "claude-haiku-4-5",
+  "recursion_limit": 10,
+  "checkpointer": "AsyncSqliteSaver",
+  "generado_en": "2026-11-01T19:45:38+00:00",
+  "turnos": [
+    {
+      "escenario": "1. Razonamiento multi-paso",
+      "thread_id": "demo-multipaso",
+      "pregunta": "¿Cuántos incidentes críticos abiertos tiene el maestro de artículos y quién es el responsable del más antiguo?",
+      "respuesta": "El maestro de artículos tiene **2 incidentes críticos abiertos**.\n\nEl más antiguo es el **INC-1001** (\"Artículos activos sin código EAN\"), abierto desde el 14/09/2026 (47 días). Su responsable es el **Gerente Comercial (Data Owner de Artículos)**.",
+      "llamadas_a_herramientas": 2,
+      "limite_de_pasos_alcanzado": false,
+      "pasos": [
+        {
+          "numero": 1,
+          "tipo": "usuario",
+          "contenido": "¿Cuántos incidentes críticos abiertos tiene el maestro de artículos y quién es el responsable del más antiguo?",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 2,
+          "tipo": "decision_herramienta",
+          "contenido": "Voy a consultar los incidentes críticos abiertos del maestro de artículos.",
+          "herramienta": "buscar_incidentes_calidad",
+          "argumentos": {
+            "maestro": "articulos",
+            "estado": "abierto",
+            "severidad": "critica"
+          },
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 3,
+          "tipo": "observacion",
+          "contenido": "",
+          "herramienta": "buscar_incidentes_calidad",
+          "argumentos": null,
+          "resultado": {
+            "maestro": "articulos",
+            "filtros": {
+              "estado": "abierto",
+              "severidad": "critica"
+            },
+            "fecha_corte": "2026-10-31",
+            "cantidad": 2,
+            "incidentes": [
+              {
+                "id": "INC-1001",
+                "titulo": "Articulos activos sin codigo EAN",
+                "severidad": "critica",
+                "estado": "abierto",
+                "fecha_alta": "2026-09-14",
+                "dias_desde_el_alta": 47
+              },
+              {
+                "id": "INC-1002",
+                "titulo": "Precio de lista en cero en articulos de venta",
+                "severidad": "critica",
+                "estado": "abierto",
+                "fecha_alta": "2026-10-20",
+                "dias_desde_el_alta": 11
+              }
+            ]
+          },
+          "es_error": false
+        },
+        {
+          "numero": 4,
+          "tipo": "decision_herramienta",
+          "contenido": "Perfecto. Hay 2 incidentes críticos abiertos. El más antiguo es el INC-1001 (abierto hace 47 días). Ahora voy a traer el detalle para identificar al responsable.",
+          "herramienta": "detalle_incidente",
+          "argumentos": {
+            "incidente_id": "INC-1001"
+          },
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 5,
+          "tipo": "observacion",
+          "contenido": "",
+          "herramienta": "detalle_incidente",
+          "argumentos": null,
+          "resultado": {
+            "id": "INC-1001",
+            "maestro": "articulos",
+            "titulo": "Articulos activos sin codigo EAN",
+            "severidad": "critica",
+            "estado": "abierto",
+            "fecha_alta": "2026-09-14",
+            "regla_id": "R-ART-01",
+            "registros_afectados": 312,
+            "responsable": "Gerente Comercial (Data Owner de Articulos)",
+            "data_steward": "Laura Perez",
+            "sla_horas_habiles": 4
+          },
+          "es_error": false
+        },
+        {
+          "numero": 6,
+          "tipo": "respuesta",
+          "contenido": "El maestro de artículos tiene **2 incidentes críticos abiertos**.\n\nEl más antiguo es el **INC-1001** (\"Artículos activos sin código EAN\"), abierto desde el 14/09/2026 (47 días). Su responsable es el **Gerente Comercial (Data Owner de Artículos)**.",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        }
+      ]
+    },
+    {
+      "escenario": "2. Memoria: mismo thread_id",
+      "thread_id": "demo-multipaso",
+      "pregunta": "¿Y qué regla de calidad incumple ese incidente? ¿Cumple hoy el umbral?",
+      "respuesta": "La regla que incumple es **R-ART-01 \"EAN obligatorio\"**: exige que todo artículo activo tenga un código EAN de 13 dígitos.\n\n**No cumple el umbral**: requiere 99,5% de conformidad y hoy está en 96,8%.",
+      "llamadas_a_herramientas": 1,
+      "limite_de_pasos_alcanzado": false,
+      "pasos": [
+        {
+          "numero": 1,
+          "tipo": "usuario",
+          "contenido": "¿Y qué regla de calidad incumple ese incidente? ¿Cumple hoy el umbral?",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 2,
+          "tipo": "decision_herramienta",
+          "contenido": "Voy a consultar la regla de calidad R-ART-01 que incumple el INC-1001.",
+          "herramienta": "consultar_regla_calidad",
+          "argumentos": {
+            "regla_id": "R-ART-01"
+          },
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 3,
+          "tipo": "observacion",
+          "contenido": "",
+          "herramienta": "consultar_regla_calidad",
+          "argumentos": null,
+          "resultado": {
+            "id": "R-ART-01",
+            "maestro": "articulos",
+            "nombre": "EAN obligatorio",
+            "descripcion": "Todo articulo activo debe tener un codigo EAN de 13 digitos.",
+            "umbral_aceptacion_pct": 99.5,
+            "medicion_actual_pct": 96.8,
+            "cumple_umbral": false
+          },
+          "es_error": false
+        },
+        {
+          "numero": 4,
+          "tipo": "respuesta",
+          "contenido": "La regla que incumple es **R-ART-01 \"EAN obligatorio\"**: exige que todo artículo activo tenga un código EAN de 13 dígitos.\n\n**No cumple el umbral**: requiere 99,5% de conformidad y hoy está en 96,8%.",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        }
+      ]
+    },
+    {
+      "escenario": "3. Ciclo de retorno ante un error",
+      "thread_id": "demo-error",
+      "pregunta": "Dame el detalle del incidente INC-1010.",
+      "respuesta": "No existe el incidente INC-1010. Los incidentes del maestro de artículos que existen son: INC-1001, INC-1002, INC-1003, INC-1004 e INC-1005.\n\n¿Querés ver el detalle de alguno de estos?",
+      "llamadas_a_herramientas": 1,
+      "limite_de_pasos_alcanzado": false,
+      "pasos": [
+        {
+          "numero": 1,
+          "tipo": "usuario",
+          "contenido": "Dame el detalle del incidente INC-1010.",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 2,
+          "tipo": "decision_herramienta",
+          "contenido": "",
+          "herramienta": "detalle_incidente",
+          "argumentos": {
+            "incidente_id": "INC-1010"
+          },
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 3,
+          "tipo": "observacion",
+          "contenido": "",
+          "herramienta": "detalle_incidente",
+          "argumentos": null,
+          "resultado": {
+            "error": "No existe el incidente 'INC-1010'.",
+            "ayuda": "IDs existentes del maestro de articulos: INC-1001, INC-1002, INC-1003, INC-1004, INC-1005."
+          },
+          "es_error": true
+        },
+        {
+          "numero": 4,
+          "tipo": "respuesta",
+          "contenido": "No existe el incidente INC-1010. Los incidentes del maestro de artículos que existen son: INC-1001, INC-1002, INC-1003, INC-1004 e INC-1005.\n\n¿Querés ver el detalle de alguno de estos?",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        }
+      ]
+    },
+    {
+      "escenario": "4. Memoria tras reiniciar",
+      "thread_id": "demo-multipaso",
+      "pregunta": "Recordame: ¿de qué incidente veníamos hablando y quién era su responsable?",
+      "respuesta": "Veníamos hablando del **INC-1001** (\"Artículos activos sin código EAN\"), el más antiguo de los incidentes críticos abiertos en artículos.\n\nSu responsable es el **Gerente Comercial (Data Owner de Artículos)**.",
+      "llamadas_a_herramientas": 0,
+      "limite_de_pasos_alcanzado": false,
+      "pasos": [
+        {
+          "numero": 1,
+          "tipo": "usuario",
+          "contenido": "Recordame: ¿de qué incidente veníamos hablando y quién era su responsable?",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        },
+        {
+          "numero": 2,
+          "tipo": "respuesta",
+          "contenido": "Veníamos hablando del **INC-1001** (\"Artículos activos sin código EAN\"), el más antiguo de los incidentes críticos abiertos en artículos.\n\nSu responsable es el **Gerente Comercial (Data Owner de Artículos)**.",
+          "herramienta": null,
+          "argumentos": null,
+          "resultado": null,
+          "es_error": false
+        }
+      ]
+    }
+  ]
+}

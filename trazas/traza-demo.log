@@ -1,0 +1,42 @@
+=== 1. Razonamiento multi-paso (thread_id=demo-multipaso) ===
+Usuario: "¿Cuántos incidentes críticos abiertos tiene el maestro de artículos y quién es el responsable del más antiguo?"
+   (el agente razona: Voy a consultar los incidentes críticos abiertos del maestro de artículos.)
+→ El agente decide usar la herramienta: buscar_incidentes_calidad(maestro='articulos', estado='abierto', severidad='critica')
+→ La herramienta devuelve: {"maestro": "articulos", "filtros": {"estado": "abierto", "severidad": "critica"}, "fecha_corte": "2026-10-31", "cantidad": 2, "incidentes": [{"id": "INC-1001", "titulo": "Articulos activos sin codigo EAN", "severidad": "critica", "estado": "abierto", "fecha_alta": "2026-09-14", "dias_desde_el_alta": 47}, {"id": "INC-1002", "titulo": "Precio de lista en cero en articulos de venta", "severidad": "critica", "estado": "abierto", "fecha_alta": "2026-10-20", "dias_desde_el_alta": 11}]}
+   (el agente razona: Perfecto. Hay 2 incidentes críticos abiertos. El más antiguo es el INC-1001 (abierto hace 47 días). Ahora voy a traer el detalle para identificar al responsable.)
+→ El agente decide usar la herramienta: detalle_incidente(incidente_id='INC-1001')
+→ La herramienta devuelve: {"id": "INC-1001", "maestro": "articulos", "titulo": "Articulos activos sin codigo EAN", "severidad": "critica", "estado": "abierto", "fecha_alta": "2026-09-14", "regla_id": "R-ART-01", "registros_afectados": 312, "responsable": "Gerente Comercial (Data Owner de Articulos)", "data_steward": "Laura Perez", "sla_horas_habiles": 4}
+→ El agente ya tiene lo que necesita → responde.
+Respuesta: "El maestro de artículos tiene **2 incidentes críticos abiertos**.
+
+El más antiguo es el **INC-1001** ("Artículos activos sin código EAN"), abierto desde el 14/09/2026 (47 días). Su responsable es el **Gerente Comercial (Data Owner de Artículos)**."
+[herramientas llamadas en este turno: 2]
+
+=== 2. Memoria: mismo thread_id (thread_id=demo-multipaso) ===
+Usuario: "¿Y qué regla de calidad incumple ese incidente? ¿Cumple hoy el umbral?"
+   (el agente razona: Voy a consultar la regla de calidad R-ART-01 que incumple el INC-1001.)
+→ El agente decide usar la herramienta: consultar_regla_calidad(regla_id='R-ART-01')
+→ La herramienta devuelve: {"id": "R-ART-01", "maestro": "articulos", "nombre": "EAN obligatorio", "descripcion": "Todo articulo activo debe tener un codigo EAN de 13 digitos.", "umbral_aceptacion_pct": 99.5, "medicion_actual_pct": 96.8, "cumple_umbral": false}
+→ El agente ya tiene lo que necesita → responde.
+Respuesta: "La regla que incumple es **R-ART-01 "EAN obligatorio"**: exige que todo artículo activo tenga un código EAN de 13 dígitos.
+
+**No cumple el umbral**: requiere 99,5% de conformidad y hoy está en 96,8%."
+[herramientas llamadas en este turno: 1]
+
+=== 3. Ciclo de retorno ante un error (thread_id=demo-error) ===
+Usuario: "Dame el detalle del incidente INC-1010."
+→ El agente decide usar la herramienta: detalle_incidente(incidente_id='INC-1010')
+→ La herramienta devuelve [ERROR]: {"error": "No existe el incidente 'INC-1010'.", "ayuda": "IDs existentes del maestro de articulos: INC-1001, INC-1002, INC-1003, INC-1004, INC-1005."}
+→ El agente ya tiene lo que necesita → responde.
+Respuesta: "No existe el incidente INC-1010. Los incidentes del maestro de artículos que existen son: INC-1001, INC-1002, INC-1003, INC-1004 e INC-1005.
+
+¿Querés ver el detalle de alguno de estos?"
+[herramientas llamadas en este turno: 1]
+
+=== 4. Memoria tras reiniciar (thread_id=demo-multipaso) ===
+Usuario: "Recordame: ¿de qué incidente veníamos hablando y quién era su responsable?"
+→ El agente ya tiene lo que necesita → responde.
+Respuesta: "Veníamos hablando del **INC-1001** ("Artículos activos sin código EAN"), el más antiguo de los incidentes críticos abiertos en artículos.
+
+Su responsable es el **Gerente Comercial (Data Owner de Artículos)**."
+[herramientas llamadas en este turno: 0]
